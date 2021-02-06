@@ -2,7 +2,7 @@
 using System.IO;
 using LoxSharp.Common.Parser;
 using LoxSharp.Grammar;
-using LoxSharp.Parser;
+using LoxSharp.Frontend;
 
 namespace LoxSharp
 {
@@ -20,8 +20,7 @@ namespace LoxSharp
 
             else if (args.Length == 0)
             {
-                // RunPrompt();
-                PrintTestExpression();
+                RunPrompt();
                 return 0;
             }
 
@@ -30,19 +29,6 @@ namespace LoxSharp
                 RunFile(args[0]);
                 return 0;
             }
-        }
-
-        private static void PrintTestExpression()
-        {
-            var expression = new Binary(
-                new Unary(
-                    new Token(TokenType.MINUS, "-", null, 1),
-                    new Literal(123)),
-                new Token(TokenType.STAR, "*", null, 1),
-                new Grouping(
-                    new Literal(45.67)));
-
-            Console.WriteLine(new AstPrinter().Print(expression));
         }
 
         private static void RunPrompt()
@@ -63,11 +49,10 @@ namespace LoxSharp
 
         private static void RunFile(string fileName)
         {
-            var fileBytes = File.ReadAllBytes(fileName);
+            var programBytes = File.ReadAllBytes(fileName);
+            var programString = System.Text.Encoding.UTF8.GetString(programBytes);
 
-            var fileString = System.Text.Encoding.UTF8.GetString(fileBytes);
-
-            Run(fileString);
+            Run(programString);
 
             if (_hadError)
             {
@@ -77,18 +62,34 @@ namespace LoxSharp
 
         private static void Run(string source)
         {
-            var scanner = new Parser.Scanner(source);
+            var scanner = new Frontend.Scanner(source);
             var tokens = scanner.ScanTokens();
+            var parser = new Parser(tokens);
+            var expression = parser.Parse();
 
-            foreach (var token in tokens)
+            if (_hadError)
             {
-                Console.WriteLine(token);
+                return;
             }
+
+            Console.WriteLine(new AstPrinter().Print(expression));
         }
 
         public static void Error(int line, string message)
         {
             Report(line, "", message);
+        }
+
+        public static void Error(Token token, string message)
+        {
+            if (token.Type == TokenType.EOF)
+            {
+                Report(token.Line, " at end", message);
+            }
+            else
+            {
+                Report(token.Line, $" at '{token.Lexeme}'", message);
+            }
         }
 
         private static void Report(int line, string where, string message)

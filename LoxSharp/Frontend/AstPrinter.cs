@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using LoxSharp.Grammar;
 
-namespace LoxSharp.Parser
+namespace LoxSharp.Frontend
 {
     public class AstPrinter : Visitor<string>
     {

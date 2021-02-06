@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace LoxSharp.Parser
+namespace LoxSharp.Frontend
 {
     class Scanner
     {
