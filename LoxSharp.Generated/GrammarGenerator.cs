@@ -1,7 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -18,8 +17,6 @@ namespace LoxSharp.Generated
 
         private void GenerateExpressions(GeneratorExecutionContext context)
         {
-            GenerateBaseClass("Expr", context);
-
             var expressions = new string[] {
                 "Assign   : Token Name, Expr Value",
                 "Binary   : Expr Left, Token Op, Expr Right",
@@ -29,16 +26,11 @@ namespace LoxSharp.Generated
                 "Variable : Token Name"
             };
 
-            var classDefinitions = expressions.Select(ParseDefinition).ToList();
-
-            GenerateVisitorInterface(classDefinitions, "Expr", context);
-            classDefinitions.ForEach(def => GenerateClass(def, "Expr", context));
+            GenerateGrammar(context, "Expr", expressions);
         }
 
         private void GenerateStatements(GeneratorExecutionContext context)
         {
-            GenerateBaseClass("Stmt", context);
-
             var statements = new string[]
             {
                 "Block      : List<Stmt> Statements",
@@ -48,10 +40,15 @@ namespace LoxSharp.Generated
                 "Exit       : Expr Expr"
             };
 
-            var classDefinitions = statements.Select(ParseDefinition).ToList();
-            
-            GenerateVisitorInterface(classDefinitions, "Stmt", context);
-            classDefinitions.ForEach(def => GenerateClass(def, "Stmt", context));
+            GenerateGrammar(context, "Stmt", statements);
+        }
+
+        private void GenerateGrammar(GeneratorExecutionContext context, string baseName, string[] elements)
+        {
+            GenerateBaseClass(baseName, context);
+            var classDefinitions = elements.Select(ParseDefinition).ToList();
+            GenerateVisitorInterface(classDefinitions, baseName, context);
+            classDefinitions.ForEach(def => GenerateClass(def, baseName, context));
         }
 
         private void GenerateBaseClass(string baseName, GeneratorExecutionContext context)
@@ -100,9 +97,6 @@ namespace LoxSharp.Grammar
             sourceBuilder.AppendLine(@"
     }
 }");
-
-            var xxx = sourceBuilder.ToString();
-            //Debugger.Launch();
 
             context.AddSource($"{baseName}Visitor", SourceText.From(sourceBuilder.ToString(), Encoding.UTF8));
         }
@@ -155,9 +149,6 @@ namespace LoxSharp.Grammar
 }
 ");
 
-            //var xxx = sourceBuilder.ToString();
-            //Debugger.Launch();
-
             context.AddSource(classDefinition.className, SourceText.From(sourceBuilder.ToString(), Encoding.UTF8));
         }
 
@@ -166,5 +157,4 @@ namespace LoxSharp.Grammar
             // deliberately left empty - not needed
         }
     }
-
 }
