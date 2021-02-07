@@ -42,6 +42,7 @@ namespace LoxSharp.Frontend
             keywords["true"] = TokenType.TRUE;
             keywords["var"] = TokenType.VAR;
             keywords["while"] = TokenType.WHILE;
+            keywords["exit"] = TokenType.EXIT;
 
             return keywords;
         }

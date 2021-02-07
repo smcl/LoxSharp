@@ -12,34 +12,60 @@ namespace LoxSharp.Generated
     {
         public void Execute(GeneratorExecutionContext context)
         {
-            GenerateExpr(context);
+            GenerateExpressions(context);
+            GenerateStatements(context);
+        }
 
-            var grammar = new string[] {
+        private void GenerateExpressions(GeneratorExecutionContext context)
+        {
+            GenerateBaseClass("Expr", context);
+
+            var expressions = new string[] {
+                "Assign   : Token Name, Expr Value",
                 "Binary   : Expr Left, Token Op, Expr Right",
                 "Grouping : Expr Expression",
                 "Literal  : Object Value",
-                "Unary    : Token Op, Expr Right"
+                "Unary    : Token Op, Expr Right",
+                "Variable : Token Name"
             };
 
-            var classDefinitions = grammar.Select(ParseDefinition).ToList();
+            var classDefinitions = expressions.Select(ParseDefinition).ToList();
 
-            GenerateVisitorInterface(classDefinitions,"Expr", context);
+            GenerateVisitorInterface(classDefinitions, "Expr", context);
             classDefinitions.ForEach(def => GenerateClass(def, "Expr", context));
         }
 
-        private void GenerateExpr(GeneratorExecutionContext context)
+        private void GenerateStatements(GeneratorExecutionContext context)
         {
-            var source = @"
-namespace LoxSharp.Grammar
-{
-    public abstract class Expr
-    {
-        public abstract T Accept<T>(Visitor<T> visitor);
-    }
-}
-";
+            GenerateBaseClass("Stmt", context);
 
-            context.AddSource("Expr", SourceText.From(source, Encoding.UTF8));
+            var statements = new string[]
+            {
+                "Block      : List<Stmt> Statements",
+                "Expression : Expr Expr",
+                "Print      : Expr Expr",
+                "Var        : Token Name, Expr Initializer",
+                "Exit       : Expr Expr"
+            };
+
+            var classDefinitions = statements.Select(ParseDefinition).ToList();
+            
+            GenerateVisitorInterface(classDefinitions, "Stmt", context);
+            classDefinitions.ForEach(def => GenerateClass(def, "Stmt", context));
+        }
+
+        private void GenerateBaseClass(string baseName, GeneratorExecutionContext context)
+        {
+            var source = $@"
+namespace LoxSharp.Grammar
+{{
+    public abstract class {baseName}
+    {{
+        public abstract T Accept<T>({baseName}Visitor < T> visitor);
+    }}
+}}";
+
+            context.AddSource(baseName, SourceText.From(source, Encoding.UTF8));
         }
 
         private (string, IEnumerable<string>) ParseDefinition(string definition)
@@ -56,15 +82,14 @@ namespace LoxSharp.Grammar
 
         private void GenerateVisitorInterface(List<(string ClassName, IEnumerable<string> Properties)> classDefinitions, string baseName, GeneratorExecutionContext context)
         {
-            var sourceBuilder = new StringBuilder(@"
+            var sourceBuilder = new StringBuilder($@"
 using System;
 using LoxSharp.Common.Parser;
 
 namespace LoxSharp.Grammar
-{
-    public interface Visitor<T> 
-    {
-");
+{{
+    public interface {baseName}Visitor<T> 
+    {{");
 
             foreach (var classDefinition in classDefinitions)
             {
@@ -76,18 +101,22 @@ namespace LoxSharp.Grammar
     }
 }");
 
-            context.AddSource("Visitor", SourceText.From(sourceBuilder.ToString(), Encoding.UTF8));
+            var xxx = sourceBuilder.ToString();
+            //Debugger.Launch();
+
+            context.AddSource($"{baseName}Visitor", SourceText.From(sourceBuilder.ToString(), Encoding.UTF8));
         }
 
         private void GenerateClass((string className, IEnumerable<string> properties) classDefinition, string baseName, GeneratorExecutionContext context)
         {
             var sourceBuilder = new StringBuilder($@"
 using System;
+using System.Collections.Generic;
 using LoxSharp.Common.Parser;
 
 namespace LoxSharp.Grammar
 {{
-    public class {classDefinition.className} : Expr
+    public class {classDefinition.className} : {baseName}
     {{
             ");
 
@@ -117,7 +146,7 @@ namespace LoxSharp.Grammar
                 ");
 
             sourceBuilder.AppendLine($@"
-                public override T Accept<T>(Visitor<T> visitor) {{
+                public override T Accept<T>({baseName}Visitor < T> visitor) {{
                     return visitor.Visit{classDefinition.className}{baseName}(this);
                 }}");
 

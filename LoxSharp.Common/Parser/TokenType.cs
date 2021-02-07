@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace LoxSharp.Common.Parser
+﻿namespace LoxSharp.Common.Parser
 {
     public enum TokenType
     {
@@ -21,7 +17,7 @@ namespace LoxSharp.Common.Parser
 
         // Keywords.
         AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
-        PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
+        PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE, EXIT,
 
         EOF
     }

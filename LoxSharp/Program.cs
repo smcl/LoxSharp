@@ -3,12 +3,15 @@ using System.IO;
 using LoxSharp.Common.Parser;
 using LoxSharp.Grammar;
 using LoxSharp.Frontend;
+using LoxSharp.Backend;
 
 namespace LoxSharp
 {
     class Program
     {
-        private static bool _hadError;
+        private static Interpreter interpreter = new Interpreter();
+        private static bool _hadError = false;
+        private static bool _hadRuntimeError = false;
 
         static int Main(string[] args)
         {
@@ -43,6 +46,8 @@ namespace LoxSharp
                     break;
                 }
 
+                _hadError = false;
+
                 Run(line);
             }
         }
@@ -56,23 +61,29 @@ namespace LoxSharp
 
             if (_hadError)
             {
-                Environment.Exit(65);
+                System.Environment.Exit(65);
+            }
+
+            if (_hadRuntimeError)
+            {
+                System.Environment.Exit(70);
             }
         }
 
         private static void Run(string source)
         {
-            var scanner = new Frontend.Scanner(source);
+            var scanner = new Scanner(source);
             var tokens = scanner.ScanTokens();
             var parser = new Parser(tokens);
-            var expression = parser.Parse();
+            var statements = parser.Parse();
 
             if (_hadError)
             {
                 return;
             }
 
-            Console.WriteLine(new AstPrinter().Print(expression));
+            interpreter.Interpret(statements);
+            // Console.WriteLine(new AstPrinter().Print(expression));
         }
 
         public static void Error(int line, string message)
@@ -90,6 +101,12 @@ namespace LoxSharp
             {
                 Report(token.Line, $" at '{token.Lexeme}'", message);
             }
+        }
+
+        public static void RuntimeError(RuntimeError error)
+        {
+            Console.Error.WriteLine($"{error.Message}\n[line {error.Token.Line}]");
+            _hadRuntimeError = true;
         }
 
         private static void Report(int line, string where, string message)

@@ -2,6 +2,7 @@
 using LoxSharp.Common.Parser;
 using System.Collections.Generic;
 using System.Text;
+using System;
 
 namespace LoxSharp.Frontend
 {
@@ -16,28 +17,67 @@ namespace LoxSharp.Frontend
             _current = 0;
         }
 
-        public Expr Parse()
+        public IList<Stmt> Parse()
         {
-            try
+            var statements = new List<Stmt>();
+            while (!AtEnd())
             {
-                return Expression();
+                statements.Add(Declaration());
             }
-            catch(ParseError)
-            {
-                return null;
-            }
+
+            return statements;
         }
 
         private Expr Expression()
         {
-            return Equality();
+            return Assignment();
+        }
+
+
+        private Expr Assignment()
+        {
+            var expr = Equality();
+
+            if (Match(TokenType.EQUAL))
+            {
+                var equals = Previous();
+                var value = Assignment();
+
+                if (expr is Variable)
+                {
+                    var name = ((Variable)expr).Name;
+                    return new Assign(name, value);
+                }
+
+                Error(equals, "Invalid assignment target.");
+            }
+
+            return expr;
+        }
+
+        private Stmt Declaration()
+        {
+            try
+            {
+                if (Match(TokenType.VAR))
+                {
+                    return VarDeclaration();
+                }
+
+                return Statement();
+            } 
+            catch(ParseError error)
+            {
+                Synchronize();
+                return null;
+            }
         }
 
         private Expr Equality()
         {
             var expr = Comparison();
 
-            while (Match(TokenType.BANG, TokenType.BANG_EQUAL))
+            while (Match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL))
             {
                 var op = Previous();
                 var right = Comparison();
@@ -121,6 +161,11 @@ namespace LoxSharp.Frontend
             if (Match(TokenType.NUMBER, TokenType.STRING))
             {
                 return new Literal(Previous().Literal);
+            }
+
+            if (Match(TokenType.IDENTIFIER))
+            {
+                return new Variable(Previous());
             }
 
             if (Match(TokenType.LEFT_PAREN))
@@ -220,6 +265,63 @@ namespace LoxSharp.Frontend
         private Token Previous()
         {
             return _tokens[_current - 1];
+        }
+
+        private Stmt Statement()
+        {
+            if (Match(TokenType.EXIT)) return ExitStatement();
+            if (Match(TokenType.PRINT)) return PrintStatement();
+            if (Match(TokenType.LEFT_BRACE)) return new Block(Block());
+
+            return ExpressionStatement();
+        }
+
+        private Stmt ExitStatement()
+        {
+            Expr value = Expression();
+            Consume(TokenType.SEMICOLON, "Expect ';' after value.");
+            return new Exit(value);
+        }
+
+        private Stmt PrintStatement()
+        {
+            Expr value = Expression();
+            Consume(TokenType.SEMICOLON, "Expect ';' after value.");
+            return new Print(value);
+        }
+
+        private Stmt VarDeclaration()
+        {
+            var name = Consume(TokenType.IDENTIFIER, "Expect variable name");
+            Expr initializer = null;
+
+            if (Match(TokenType.EQUAL))
+            {
+                initializer = Expression();
+            }
+
+            Consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
+            return new Var(name, initializer);
+        }
+
+        private Stmt ExpressionStatement()
+        {
+            Expr expr = Expression();
+            Consume(TokenType.SEMICOLON, "Expect ';' after expression.");
+            return new Expression(expr);
+        }
+
+        private List<Stmt> Block()
+        {
+            var statements = new List<Stmt>();
+
+            while (!Check(TokenType.RIGHT_BRACE) && !AtEnd())
+            {
+                statements.Add(Declaration());
+            }
+
+            Consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
+            return statements;
         }
     }
 

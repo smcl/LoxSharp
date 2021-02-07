@@ -3,11 +3,16 @@ using LoxSharp.Grammar;
 
 namespace LoxSharp.Frontend
 {
-    public class AstPrinter : Visitor<string>
+    public class AstPrinter : ExprVisitor<string>
     {
         public string Print(Expr expr)
         {
             return expr.Accept(this);
+        }
+
+        public string VisitAssignExpr(Assign a)
+        {
+            return $"{a.Name} <- {Print(a.Value)}";
         }
 
         public string VisitBinaryExpr(Binary b)
@@ -32,6 +37,11 @@ namespace LoxSharp.Frontend
         public string VisitUnaryExpr(Unary u)
         {
             return Parenthesize(u.Op.Lexeme, u.Right);
+        }
+
+        public string VisitVariableExpr(Variable v)
+        {
+            return v.Name.Lexeme;
         }
 
         private string Parenthesize(string name, params Expr[] expressions)
