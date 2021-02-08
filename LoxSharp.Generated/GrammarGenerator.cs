@@ -22,6 +22,7 @@ namespace LoxSharp.Generated
                 "Binary   : Expr Left, Token Op, Expr Right",
                 "Grouping : Expr Expression",
                 "Literal  : Object Value",
+                "Logical  : Expr Left, Token Op, Expr Right",
                 "Unary    : Token Op, Expr Right",
                 "Variable : Token Name"
             };
@@ -35,8 +36,10 @@ namespace LoxSharp.Generated
             {
                 "Block      : List<Stmt> Statements",
                 "Expression : Expr Expr",
+                "If         : Expr Condition, Stmt ThenBranch, Stmt ElseBranch",
                 "Print      : Expr Expr",
                 "Var        : Token Name, Expr Initializer",
+                "While      : Expr Condition, Stmt Body",
                 "Exit       : Expr Expr"
             };
 

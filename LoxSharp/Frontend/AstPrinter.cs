@@ -34,6 +34,11 @@ namespace LoxSharp.Frontend
             return l.Value.ToString();
         }
 
+        public string VisitLogicalExpr(Logical l)
+        {
+            throw new System.NotImplementedException();
+        }
+
         public string VisitUnaryExpr(Unary u)
         {
             return Parenthesize(u.Op.Lexeme, u.Right);

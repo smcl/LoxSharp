@@ -128,7 +128,7 @@ namespace LoxSharp.Backend
 
             if (obj is bool)
             {
-                return !(bool)obj;
+                return (bool)obj;
             }
 
             return true;
@@ -264,6 +264,54 @@ namespace LoxSharp.Backend
             catch (Exception)
             {
                 System.Environment.Exit(-1);
+            }
+
+            return null;
+        }
+
+        public object VisitIfStmt(If i)
+        {
+            var condition = Evaluate(i.Condition);
+
+            if (IsTruthy(condition))
+            {
+                Execute(i.ThenBranch);
+            }
+            else if (i.ElseBranch != null)
+            { 
+                Execute(i.ElseBranch);
+            }
+
+            return null;
+        }
+
+        public object VisitLogicalExpr(Logical l)
+        {
+            var left = Evaluate(l.Left);
+
+            if (l.Op.Type == TokenType.OR)
+            {
+                if (IsTruthy(left))
+                {
+                    return left;
+                }
+            }
+            else
+            {
+                if (!IsTruthy(left))
+                {
+                    return left;
+                }
+            }
+
+            return Evaluate(l.Right);
+        }
+
+        public object VisitWhileStmt(While w)
+        {
+            while (IsTruthy(Evaluate(w.Condition)))
+            {
+                Execute(w.Body);
             }
 
             return null;
