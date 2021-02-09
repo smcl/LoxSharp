@@ -1,11 +1,9 @@
 ﻿using LoxSharp.Common.Parser;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace LoxSharp.Backend
 {
-    class Environment
+    public class Environment
     {
         private readonly Environment _enclosing;
         private readonly IDictionary<string, object> _values;

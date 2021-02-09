@@ -3,18 +3,23 @@ using System.Collections.Generic;
 using System.Text;
 using LoxSharp.Grammar;
 using LoxSharp.Common.Parser;
+using LoxSharp.StdLib;
 
 namespace LoxSharp.Backend
 {
     public class Interpreter : ExprVisitor<object>, StmtVisitor<object>
     {
+        public Environment Globals;
         private Environment _environment;
 
         public Interpreter()
         {
-            _environment = new Environment();
+            Globals = new Environment();
+            _environment = Globals;
+
+            Globals.Define("clock", new Clock());
         }
-            
+
         public void Interpret(IList<Stmt> statements)
         { 
             try
@@ -233,7 +238,7 @@ namespace LoxSharp.Backend
             return null;
         }
 
-        private void ExecuteBlock(List<Stmt> statements, Environment environment)
+        public void ExecuteBlock(IList<Stmt> statements, Environment environment)
         {
             var previous = _environment;
 
@@ -315,6 +320,45 @@ namespace LoxSharp.Backend
             }
 
             return null;
+        }
+
+        public object VisitCallExpr(Call c)
+        {
+            var callee = Evaluate(c.Callee);
+            var arguments = new List<object>();
+
+            foreach (var argument in c.Arguments)
+            {
+                arguments.Add(Evaluate(argument));
+            }
+
+            var function = (ILoxCallable)callee;
+
+            if (arguments.Count != function.Arity)
+            {
+                throw new RuntimeError(c.Paren, $"Expected {function.Arity} arguments but got {arguments.Count}.");
+            }
+
+            return function.Call(this, arguments);
+        }
+
+        public object VisitFunctionStmt(Function f)
+        {
+            var function = new LoxFunction(f, _environment);
+            _environment.Define(f.Name.Lexeme, function);
+            return null;
+        }
+
+        public object VisitReturnStmt(Return r)
+        {
+            object value = null;
+
+            if (r.Value != null)
+            {
+                value = Evaluate(r.Value);
+            }
+
+            throw new ReturnValue(value);
         }
     }
 }

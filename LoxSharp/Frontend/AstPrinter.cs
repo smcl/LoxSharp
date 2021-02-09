@@ -1,67 +1,72 @@
-﻿using System.Text;
-using LoxSharp.Grammar;
+﻿//using System.Text;
+//using LoxSharp.Grammar;
 
-namespace LoxSharp.Frontend
-{
-    public class AstPrinter : ExprVisitor<string>
-    {
-        public string Print(Expr expr)
-        {
-            return expr.Accept(this);
-        }
+//namespace LoxSharp.Frontend
+//{
+//    public class AstPrinter : ExprVisitor<string>
+//    {
+//        public string Print(Expr expr)
+//        {
+//            return expr.Accept(this);
+//        }
 
-        public string VisitAssignExpr(Assign a)
-        {
-            return $"{a.Name} <- {Print(a.Value)}";
-        }
+//        public string VisitAssignExpr(Assign a)
+//        {
+//            return $"{a.Name} <- {Print(a.Value)}";
+//        }
 
-        public string VisitBinaryExpr(Binary b)
-        {
-            return Parenthesize(b.Op.Lexeme,
-                b.Left, b.Right);
-        }
+//        public string VisitBinaryExpr(Binary b)
+//        {
+//            return Parenthesize(b.Op.Lexeme,
+//                b.Left, b.Right);
+//        }
 
-        public string VisitGroupingExpr(Grouping g)
-        {
-            return Parenthesize("group", g.Expression);
-        }
+//        public string VisitCallExpr(Call c)
+//        {
+//            return "";
+//        }
 
-        public string VisitLiteralExpr(Literal l)
-        {
-            if (l.Value == null)
-                return "nil";
+//        public string VisitGroupingExpr(Grouping g)
+//        {
+//            return Parenthesize("group", g.Expression);
+//        }
 
-            return l.Value.ToString();
-        }
+//        public string VisitLiteralExpr(Literal l)
+//        {
+//            if (l.Value == null)
+//                return "nil";
 
-        public string VisitLogicalExpr(Logical l)
-        {
-            throw new System.NotImplementedException();
-        }
+//            return l.Value.ToString();
+//        }
 
-        public string VisitUnaryExpr(Unary u)
-        {
-            return Parenthesize(u.Op.Lexeme, u.Right);
-        }
+//        public string VisitLogicalExpr(Logical l)
+//        {
+//            throw new System.NotImplementedException();
+//        }
 
-        public string VisitVariableExpr(Variable v)
-        {
-            return v.Name.Lexeme;
-        }
+//        public string VisitUnaryExpr(Unary u)
+//        {
+//            return Parenthesize(u.Op.Lexeme, u.Right);
+//        }
 
-        private string Parenthesize(string name, params Expr[] expressions)
-        {
-            var builder = new StringBuilder();
+//        public string VisitVariableExpr(Variable v)
+//        {
+//            return v.Name.Lexeme;
+//        }
 
-            builder.Append("(").Append(name);
+//        private string Parenthesize(string name, params Expr[] expressions)
+//        {
+//            var builder = new StringBuilder();
 
-            foreach (var expr in expressions)
-            {
-                builder.Append($" {expr.Accept(this)}");
-            }
+//            builder.Append("(").Append(name);
 
-            builder.Append(")");
-            return builder.ToString();
-        }
-    }
-}
+//            foreach (var expr in expressions)
+//            {
+//                builder.Append($" {expr.Accept(this)}");
+//            }
+
+//            builder.Append(")");
+//            return builder.ToString();
+//        }
+//    }
+//}

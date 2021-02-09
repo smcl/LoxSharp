@@ -20,6 +20,7 @@ namespace LoxSharp.Generated
             var expressions = new string[] {
                 "Assign   : Token Name, Expr Value",
                 "Binary   : Expr Left, Token Op, Expr Right",
+                "Call     : Expr Callee, Token Paren, IList<Expr> Arguments",
                 "Grouping : Expr Expression",
                 "Literal  : Object Value",
                 "Logical  : Expr Left, Token Op, Expr Right",
@@ -36,11 +37,12 @@ namespace LoxSharp.Generated
             {
                 "Block      : List<Stmt> Statements",
                 "Expression : Expr Expr",
-                "If         : Expr Condition, Stmt ThenBranch, Stmt ElseBranch",
+                "Function   : Token Name, IList<Token> Parameters, IList<Stmt> Body",                "If         : Expr Condition, Stmt ThenBranch, Stmt ElseBranch",
                 "Print      : Expr Expr",
                 "Var        : Token Name, Expr Initializer",
                 "While      : Expr Condition, Stmt Body",
-                "Exit       : Expr Expr"
+                "Exit       : Expr Expr",
+                "Return     : Token Keyword, Expr Value"
             };
 
             GenerateGrammar(context, "Stmt", statements);
