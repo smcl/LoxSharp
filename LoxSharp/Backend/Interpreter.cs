@@ -18,6 +18,7 @@ namespace LoxSharp.Backend
             _environment = Globals;
 
             Globals.Define("clock", new Clock());
+            Globals.Define("add", new LoxCallable(2, (args) => (double)args[0] + (double)args[1]));
         }
 
         public void Interpret(IList<Stmt> statements)
