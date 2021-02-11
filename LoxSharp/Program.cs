@@ -82,6 +82,14 @@ namespace LoxSharp
                 return;
             }
 
+            var resolver = new Resolver(interpreter);
+            resolver.Resolve(statements);
+
+            if (_hadError)
+            {
+                return;
+            }
+
             interpreter.Interpret(statements);
             // Console.WriteLine(new AstPrinter().Print(expression));
         }

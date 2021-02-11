@@ -11,11 +11,13 @@ namespace LoxSharp.Backend
     {
         public Environment Globals;
         private Environment _environment;
+        private readonly IDictionary<Expr, int> _locals;
 
         public Interpreter()
         {
             Globals = new Environment();
             _environment = Globals;
+            _locals = new Dictionary<Expr, int>();
 
             Globals.Define("clock", new Clock());
             Globals.Define("add", new LoxCallable(2, (args) => (double)args[0] + (double)args[1]));
@@ -210,7 +212,16 @@ namespace LoxSharp.Backend
 
         public object VisitVariableExpr(Variable v)
         {
-            return _environment.Get(v.Name);
+            return LookupVariable(v.Name, v);
+        }
+
+        private object LookupVariable(Token name, Variable v)
+        {
+            if (_locals.TryGetValue(v, out var distance))
+            {
+                return _environment.GetAt(distance, name.Lexeme);
+            }
+            return Globals.Get(name);
         }
 
         public object VisitVarStmt(Var v)
@@ -229,7 +240,16 @@ namespace LoxSharp.Backend
         public object VisitAssignExpr(Assign a)
         {
             var value = Evaluate(a.Value);
-            _environment.Assign(a.Name, value);
+
+            if (_locals.TryGetValue(a, out var distance))
+            {
+                _environment.AssignAt(distance, a.Name, value);
+            }
+            else 
+            {
+                Globals.Assign(a.Name, value);
+            }
+
             return value;
         }
 
@@ -360,6 +380,11 @@ namespace LoxSharp.Backend
             }
 
             throw new ReturnValue(value);
+        }
+
+        public void Resolve(Expr expr, int depth)
+        {
+            _locals.Add(expr, depth);
         }
     }
 }

@@ -8,6 +8,9 @@ namespace LoxSharp.Backend
         private readonly Environment _enclosing;
         private readonly IDictionary<string, object> _values;
 
+        public Environment Enclosing { get => _enclosing;  }
+        public IDictionary<string, object> Values { get => _values; }
+
         public Environment(): this(null)
         {
         }
@@ -38,6 +41,30 @@ namespace LoxSharp.Backend
             throw new RuntimeError(name, $"Undefined variable '{name.Lexeme}'.");
         }
 
+        public object GetAt(int distance, string name)
+        {
+            var ancestor = Ancestor(distance);
+
+            if (ancestor.Values.TryGetValue(name, out var value))
+            {
+                return value;
+            }
+
+            return null;
+        }
+
+        private Environment Ancestor(int distance)
+        {
+            var env = this;
+
+            for (var i = 0; i < distance; i++)
+            {
+                env = env.Enclosing;
+            }
+
+            return env;
+        }
+
         public object Assign(Token name, object value)
         {
             if (_values.ContainsKey(name.Lexeme))
@@ -53,6 +80,12 @@ namespace LoxSharp.Backend
             }
 
             throw new RuntimeError(name, $"Undefined variable '{name.Lexeme}'.");
+        }
+
+        public void AssignAt(int distance, Token name, object value)
+        {
+            var ancestor = Ancestor(distance);
+            ancestor.Values[name.Lexeme] = value;
         }
     }
 }

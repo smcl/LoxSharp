@@ -84,26 +84,34 @@ namespace LoxSharp.Grammar
 
         private void GenerateVisitorInterface(List<(string ClassName, IEnumerable<string> Properties)> classDefinitions, string baseName, GeneratorExecutionContext context)
         {
-            var sourceBuilder = new StringBuilder($@"
+            var classContents = new StringBuilder();
+            var genericClassContents = new StringBuilder();
+
+            foreach (var classDefinition in classDefinitions)
+            {
+                var methodName = $"Visit{classDefinition.ClassName}{baseName}";
+                classContents.AppendLine($"\tvoid {methodName}({classDefinition.ClassName} {classDefinition.ClassName.ToLower().First()});");
+                genericClassContents.AppendLine($"\tT {methodName}({classDefinition.ClassName} {classDefinition.ClassName.ToLower().First()});");
+            }
+
+            var source = $@"
 using System;
 using LoxSharp.Common.Parser;
 
 namespace LoxSharp.Grammar
 {{
-    public interface {baseName}Visitor<T> 
-    {{");
+            public interface {baseName}Visitor
+            {{
+                {classContents.ToString()}
+            }}
 
-            foreach (var classDefinition in classDefinitions)
-            {
-                var methodName = $"Visit{classDefinition.ClassName}{baseName}";
-                sourceBuilder.AppendLine($"\tT {methodName}({classDefinition.ClassName} {classDefinition.ClassName.ToLower().First()});");
-            }
+            public interface {baseName}Visitor<T> 
+            {{
+                {genericClassContents.ToString()}
+            }}
+}}";
 
-            sourceBuilder.AppendLine(@"
-    }
-}");
-
-            context.AddSource($"{baseName}Visitor", SourceText.From(sourceBuilder.ToString(), Encoding.UTF8));
+            context.AddSource($"{baseName}Visitor", SourceText.From(source, Encoding.UTF8));
         }
 
         private void GenerateClass((string className, IEnumerable<string> properties) classDefinition, string baseName, GeneratorExecutionContext context)
