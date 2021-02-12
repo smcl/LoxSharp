@@ -16,13 +16,14 @@ namespace LoxSharp.Extensions
             var inverseStack = new Stack<T>();
             T element = stack.Peek();
 
-            i = stack.Count - i;
 
-            while (i < stack.Count)
+            var current = stack.Count - 1;
+
+            while (current != i)
             {
                 element = stack.Pop();
                 inverseStack.Push(element);
-                i += 1;
+                current -= 1;
             }
 
             foreach (var s in inverseStack)

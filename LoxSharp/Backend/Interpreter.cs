@@ -215,13 +215,24 @@ namespace LoxSharp.Backend
             return LookupVariable(v.Name, v);
         }
 
-        private object LookupVariable(Token name, Variable v)
+        private object LookupVariable(Token name, Expr v)
         {
             if (_locals.TryGetValue(v, out var distance))
             {
                 return _environment.GetAt(distance, name.Lexeme);
             }
-            return Globals.Get(name);
+
+            // OK so this is likely WRONG. The proper return is:
+            //
+            //   return Globals.Get(name);
+            //
+            // For some reason "this" doesn't end up in _locals
+            // even though it's in the _environment. I need to
+            // find out why it doesn't get set there. I will
+            // probably need to work through that annoying bit
+            // on Resolving & Binding :-/
+
+            return _environment.Get(name);
         }
 
         public object VisitVarStmt(Var v)
@@ -365,7 +376,7 @@ namespace LoxSharp.Backend
 
         public object VisitFunctionStmt(Function f)
         {
-            var function = new LoxFunction(f, _environment);
+            var function = new LoxFunction(f, _environment, false);
             _environment.Define(f.Name.Lexeme, function);
             return null;
         }
@@ -385,6 +396,54 @@ namespace LoxSharp.Backend
         public void Resolve(Expr expr, int depth)
         {
             _locals.Add(expr, depth);
+        }
+
+        public object VisitClassStmt(Class c)
+        {
+            _environment.Define(c.Name.Lexeme, null);
+
+            var methods = new Dictionary<string, LoxFunction>();
+            foreach (var method in c.Methods)
+            {
+                var isInitializer = method.Name.Lexeme == "init";
+                var function = new LoxFunction(method, _environment, isInitializer);
+                methods.Add(method.Name.Lexeme, function);
+            }
+
+            var klass = new LoxClass(c.Name.Lexeme, methods);
+            _environment.Assign(c.Name, klass);
+            return null;
+        }
+
+        public object VisitGetExpr(Get g)
+        {
+            var obj = Evaluate(g.LoxObject);
+
+            if (obj is LoxInstance)
+            {
+                return ((LoxInstance)obj).Get(g.Name);
+            }
+
+            throw new RuntimeError(g.Name, "Only instances have properties");
+        }
+
+        public object VisitSetExpr(Set s)
+        {
+            var obj = Evaluate(s.LoxObject);
+
+            if (!(obj is LoxInstance))
+            {
+                throw new RuntimeError(s.Name, "Only instances have fields.");
+            }
+
+            var value = Evaluate(s.Value);
+            ((LoxInstance)obj).Set(s.Name, value);
+            return value;
+        }
+
+        public object VisitThisExpr(This t)
+        {
+            return LookupVariable(t.Keyword, t);
         }
     }
 }

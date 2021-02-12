@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using LoxSharp.Grammar;
 using LoxSharp.Common.Parser;
-using LoxSharp.StdLib;
 using LoxSharp.Extensions;
 
 namespace LoxSharp.Backend
@@ -14,6 +12,7 @@ namespace LoxSharp.Backend
         private readonly Stack<IDictionary<string, bool>> _scopes;
         private readonly IDictionary<Expr, int> _locals;
         private FunctionType _currentFunction;
+        private ClassType _currentClass;
 
         public Resolver(Interpreter interpreter)
         {
@@ -21,6 +20,7 @@ namespace LoxSharp.Backend
             _scopes = new Stack<IDictionary<string, bool>>();
             _locals = new Dictionary<Expr, int>();
             _currentFunction = FunctionType.NONE;
+            _currentClass = ClassType.NONE;
         }
 
         public object VisitAssignExpr(Assign a)
@@ -139,6 +139,10 @@ namespace LoxSharp.Backend
 
             if (r.Value != null)
             {
+                if (_currentFunction == FunctionType.INITIALIZER)
+                {
+                    Program.Error(r.Keyword, "Can't return a value from an initializer.");
+                }
                 Resolve(r.Value);
             }
             return null;
@@ -220,7 +224,6 @@ namespace LoxSharp.Backend
 
             var scope = _scopes.Peek();
             scope[name.Lexeme] = true;
-            // scope.Add(name.Lexeme, true);
         }
 
         public object VisitWhileStmt(While w)
@@ -261,6 +264,56 @@ namespace LoxSharp.Backend
         private void Resolve(Expr expr, int depth)
         {
             _locals.Add(expr, depth);
+        }
+
+        public object VisitClassStmt(Class c)
+        {
+            var enclosingClass = _currentClass;
+            _currentClass = ClassType.CLASS;
+
+            Declare(c.Name);
+            Define(c.Name);
+
+            BeginScope();
+            _scopes.Peek().Add("this", true);
+
+            foreach (var method in c.Methods)
+            {
+                var declaration = method.Name.Lexeme == "init"
+                    ? FunctionType.INITIALIZER
+                    : FunctionType.METHOD;
+
+                ResolveFunction(method, declaration);
+            }
+
+            EndScope();
+            _currentClass = enclosingClass;
+            return null;
+        }
+
+        public object VisitGetExpr(Get g)
+        {
+            Resolve(g.LoxObject);
+            return null;
+        }
+
+        public object VisitSetExpr(Set s)
+        {
+            Resolve(s.Value);
+            Resolve(s.LoxObject);
+            return null;
+        }
+
+        public object VisitThisExpr(This t)
+        {
+            if (_currentClass == ClassType.NONE)
+            {
+                Program.Error(t.Keyword, "Can't use 'this' outside of a class.");
+                return null;
+            }
+
+            ResolveLocal(t, t.Keyword);
+            return null;
         }
     }
 }

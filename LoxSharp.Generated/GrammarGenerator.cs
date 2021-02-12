@@ -25,7 +25,10 @@ namespace LoxSharp.Generated
                 "Literal  : Object Value",
                 "Logical  : Expr Left, Token Op, Expr Right",
                 "Unary    : Token Op, Expr Right",
-                "Variable : Token Name"
+                "Variable : Token Name",
+                "Get      : Expr LoxObject, Token Name",
+                "Set      : Expr LoxObject, Token Name, Expr Value",
+                "This     : Token Keyword"
             };
 
             GenerateGrammar(context, "Expr", expressions);
@@ -36,6 +39,7 @@ namespace LoxSharp.Generated
             var statements = new string[]
             {
                 "Block      : List<Stmt> Statements",
+                "Class      : Token Name, IList<Function> Methods",
                 "Expression : Expr Expr",
                 "Function   : Token Name, IList<Token> Parameters, IList<Stmt> Body",                "If         : Expr Condition, Stmt ThenBranch, Stmt ElseBranch",
                 "Print      : Expr Expr",
@@ -159,8 +163,7 @@ namespace LoxSharp.Grammar
 
             sourceBuilder.AppendLine(@"
     }
-}
-");
+}");
 
             context.AddSource(classDefinition.className, SourceText.From(sourceBuilder.ToString(), Encoding.UTF8));
         }

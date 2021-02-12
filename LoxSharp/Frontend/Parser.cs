@@ -48,6 +48,11 @@ namespace LoxSharp.Frontend
                     var name = ((Variable)expr).Name;
                     return new Assign(name, value);
                 }
+                else if (expr is Get)
+                {
+                    var get = (Get)expr;
+                    return new Set(get.LoxObject, get.Name, value);
+                }
 
                 Error(equals, "Invalid assignment target.");
             }
@@ -88,6 +93,10 @@ namespace LoxSharp.Frontend
         {
             try
             {
+                if (Match(TokenType.CLASS))
+                {
+                    return ClassDeclaration();
+                }
                 if (Match(TokenType.FUN))
                 {
                     return Function("function");
@@ -106,7 +115,24 @@ namespace LoxSharp.Frontend
             }
         }
 
-        private Stmt Function(string kind)
+        private Stmt ClassDeclaration()
+        {
+            var name = Consume(TokenType.IDENTIFIER, "Expected class name.");
+            Consume(TokenType.LEFT_BRACE, "Expected '{' before class body");
+
+            var methods = new List<Function>();
+
+            while (!Check(TokenType.RIGHT_BRACE) && !AtEnd())
+            {
+                methods.Add(Function("method"));
+            }
+
+            Consume(TokenType.RIGHT_BRACE, "Expected '}' after class body");
+
+            return new Class(name, methods);
+        }
+
+        private Function Function(string kind)
         {
             var name = Consume(TokenType.IDENTIFIER, $"Expect {kind} name.");
             Consume(TokenType.LEFT_PAREN, $"Expect '(' after {kind} name.");
@@ -214,6 +240,11 @@ namespace LoxSharp.Frontend
                 {
                     expr = FinishCall(expr);
                 }
+                else if (Match(TokenType.DOT))
+                {
+                    var name = Consume(TokenType.IDENTIFIER, "Expect property name after '.'.");
+                    expr = new Get(expr, name);
+                }
                 else
                 {
                     break;
@@ -266,6 +297,11 @@ namespace LoxSharp.Frontend
                 return new Literal(Previous().Literal);
             }
 
+            if (Match(TokenType.THIS))
+            {
+                return new This(Previous());
+            }
+
             if (Match(TokenType.IDENTIFIER))
             {
                 return new Variable(Previous());
@@ -310,7 +346,7 @@ namespace LoxSharp.Frontend
             if (Check(type))
                 return Advance();
 
-            throw new System.Exception(message);
+            throw Error(Peek(), message);
         }
 
         private ParseError Error(Token token, string message)
