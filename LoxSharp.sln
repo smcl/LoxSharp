@@ -5,9 +5,11 @@ VisualStudioVersion = 16.0.30907.101
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoxSharp", "LoxSharp\LoxSharp.csproj", "{5E0461BA-5D32-4A00-9A4A-14FF26C22DE2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoxSharp.Generated", "LoxSharp.Generated\LoxSharp.Generated.csproj", "{8ED40E49-7AA5-4CA8-82C2-AED967C10B0C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoxSharp.Generated", "LoxSharp.Generated\LoxSharp.Generated.csproj", "{8ED40E49-7AA5-4CA8-82C2-AED967C10B0C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoxSharp.Common", "LoxSharp.Common\LoxSharp.Common.csproj", "{D93D78E8-5304-44F1-AD53-2059E3432583}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoxSharp.Common", "LoxSharp.Common\LoxSharp.Common.csproj", "{D93D78E8-5304-44F1-AD53-2059E3432583}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoxSharp.Test", "LoxSharp.Test\LoxSharp.Test.csproj", "{ABBCB7CB-6C5E-4DFD-9177-8BA902613C7B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{D93D78E8-5304-44F1-AD53-2059E3432583}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D93D78E8-5304-44F1-AD53-2059E3432583}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D93D78E8-5304-44F1-AD53-2059E3432583}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABBCB7CB-6C5E-4DFD-9177-8BA902613C7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABBCB7CB-6C5E-4DFD-9177-8BA902613C7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABBCB7CB-6C5E-4DFD-9177-8BA902613C7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABBCB7CB-6C5E-4DFD-9177-8BA902613C7B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -10,7 +10,6 @@ namespace LoxSharp.Backend
     {
         private readonly Interpreter _interpreter;
         private readonly Stack<IDictionary<string, bool>> _scopes;
-        private readonly IDictionary<Expr, int> _locals;
         private FunctionType _currentFunction;
         private ClassType _currentClass;
 
@@ -18,9 +17,98 @@ namespace LoxSharp.Backend
         {
             _interpreter = interpreter;
             _scopes = new Stack<IDictionary<string, bool>>();
-            _locals = new Dictionary<Expr, int>();
             _currentFunction = FunctionType.NONE;
             _currentClass = ClassType.NONE;
+        }
+
+        private void ResolveFunction(Function f, FunctionType type)
+        {
+            var enclosingFunction = _currentFunction;
+            _currentFunction = type;
+
+            BeginScope();
+
+            foreach (var p in f.Parameters)
+            {
+                Declare(p);
+                Define(p);
+            }
+
+            Resolve(f.Body);
+            EndScope();
+
+            _currentFunction = enclosingFunction;
+        }
+
+        private void BeginScope()
+        {
+            _scopes.Push(new Dictionary<string, bool>());
+        }
+
+        private void EndScope()
+        {
+            _scopes.Pop();
+        }
+
+        private void Declare(Token name)
+        {
+            if (_scopes.IsEmpty())
+            {
+                return;
+            }
+
+            var scope = _scopes.Peek();
+
+            if (scope.ContainsKey(name.Lexeme))
+            {
+                Program.Error(name, "Already variable with this name in this scope");
+            }
+
+            scope.Add(name.Lexeme, false);
+        }
+
+        private void Define(Token name)
+        {
+            if (_scopes.IsEmpty())
+            {
+                return;
+            }
+
+            var scope = _scopes.Peek();
+            scope[name.Lexeme] = true;
+        }
+
+        public void Resolve(IList<Stmt> statements)
+        {
+            foreach (var statement in statements)
+            {
+                Resolve(statement);
+            }
+        }
+
+        private void Resolve(Stmt statement)
+        {
+            statement.Accept(this);
+        }
+
+        private void Resolve(Expr expr)
+        {
+            expr.Accept(this);
+        }
+
+
+        private void ResolveLocal(Expr expr, Token name)
+        {
+            for (var i = _scopes.Count - 1; i >= 0; i--)
+            {
+                var scope = _scopes.Get(i);
+
+                if (scope.ContainsKey(name.Lexeme))
+                {
+                    _interpreter.Resolve(expr, _scopes.Count - 1 - i);
+                    return;
+                }
+            }
         }
 
         public object VisitAssignExpr(Assign a)
@@ -74,25 +162,6 @@ namespace LoxSharp.Backend
             Define(f.Name);
             ResolveFunction(f, FunctionType.FUNCTION);
             return null;
-        }
-
-        private void ResolveFunction(Function f, FunctionType type)
-        {
-            var enclosingFunction = _currentFunction;
-            _currentFunction = type;
-
-            BeginScope();
-
-            foreach (var p in f.Parameters)
-            {
-                Declare(p);
-                Define(p);
-            }
-
-            Resolve(f.Body);
-            EndScope();
-
-            _currentFunction = enclosingFunction;
         }
 
         public object VisitGroupingExpr(Grouping g)
@@ -150,12 +219,13 @@ namespace LoxSharp.Backend
 
         public object VisitUnaryExpr(Unary u)
         {
-            throw new NotImplementedException();
+            Resolve(u.Right);
+            return null;
         }
 
         public object VisitVariableExpr(Variable v)
         {
-            if (_scopes.Count > 0)
+            if (!_scopes.IsEmpty())
             {
                 var scope = _scopes.Peek();
                 if (scope.TryGetValue(v.Name.Lexeme, out var res))
@@ -171,20 +241,6 @@ namespace LoxSharp.Backend
             return null;
         }
 
-        private void ResolveLocal(Expr expr, Token name)
-        {
-            for (var i = _scopes.Count - 1; i >= 0; i--)
-            {
-                var scope = _scopes.Get(i);
-
-                if (scope.ContainsKey(name.Lexeme))
-                {
-                    _interpreter.Resolve(expr, _scopes.Count - 1 - i);
-                    return;
-                }
-            }
-        }
-
         public object VisitVarStmt(Var v)
         {
             Declare(v.Name);
@@ -198,72 +254,11 @@ namespace LoxSharp.Backend
             return null;
         }
 
-        private void Declare(Token name)
-        {
-            if (_scopes.Count == 0)
-            {
-                return;
-            }
-
-            var scope = _scopes.Peek();
-
-            if (scope.ContainsKey(name.Lexeme))
-            {
-                Program.Error(name, "Already variable with this name in this scope");
-            }
-
-            scope.Add(name.Lexeme, false);
-        }
-
-        private void Define(Token name)
-        {
-            if (_scopes.Count == 0)
-            {
-                return;
-            }
-
-            var scope = _scopes.Peek();
-            scope[name.Lexeme] = true;
-        }
-
         public object VisitWhileStmt(While w)
         {
             Resolve(w.Condition);
             Resolve(w.Body);
             return null;
-        }
-
-        private void BeginScope()
-        {
-            _scopes.Push(new Dictionary<string, bool>());
-        }
-
-        private void EndScope()
-        {
-            _scopes.Pop();
-        }
-
-        public void Resolve(IList<Stmt> statements)
-        {
-            foreach (var statement in statements)
-            {
-                Resolve(statement);
-            }
-        }
-
-        private void Resolve(Stmt statement)
-        {
-            statement.Accept(this);
-        }
-
-        private void Resolve(Expr expr)
-        {
-            expr.Accept(this);
-        }
-
-        private void Resolve(Expr expr, int depth)
-        {
-            _locals.Add(expr, depth);
         }
 
         public object VisitClassStmt(Class c)

@@ -9,18 +9,18 @@ namespace LoxSharp.Backend
 {
     public class Interpreter : ExprVisitor<object>, StmtVisitor<object>
     {
-        public Environment Globals;
+        private readonly Environment _globals;
         private Environment _environment;
         private readonly IDictionary<Expr, int> _locals;
 
         public Interpreter()
         {
-            Globals = new Environment();
-            _environment = Globals;
+            _globals = new Environment();
+            _environment = _globals;
             _locals = new Dictionary<Expr, int>();
 
-            Globals.Define("clock", new Clock());
-            Globals.Define("add", new LoxCallable(2, (args) => (double)args[0] + (double)args[1]));
+            _globals.Define("clock", new Clock());
+            _globals.Define("add", new LoxCallable(2, (args) => (double)args[0] + (double)args[1]));
         }
 
         public void Interpret(IList<Stmt> statements)
@@ -222,17 +222,7 @@ namespace LoxSharp.Backend
                 return _environment.GetAt(distance, name.Lexeme);
             }
 
-            // OK so this is likely WRONG. The proper return is:
-            //
-            //   return Globals.Get(name);
-            //
-            // For some reason "this" doesn't end up in _locals
-            // even though it's in the _environment. I need to
-            // find out why it doesn't get set there. I will
-            // probably need to work through that annoying bit
-            // on Resolving & Binding :-/
-
-            return _environment.Get(name);
+            return _globals.Get(name);
         }
 
         public object VisitVarStmt(Var v)
@@ -258,7 +248,7 @@ namespace LoxSharp.Backend
             }
             else 
             {
-                Globals.Assign(a.Name, value);
+                _globals.Assign(a.Name, value);
             }
 
             return value;
