@@ -1,7 +1,7 @@
 ﻿using LoxSharp.Common.Parser;
 using System;
 
-namespace LoxSharp
+namespace LoxSharp.Runtime
 {
     public class RuntimeError: Exception
     {

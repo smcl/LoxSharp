@@ -5,7 +5,7 @@ using LoxSharp.Grammar;
 using LoxSharp.Common.Parser;
 using LoxSharp.StdLib;
 
-namespace LoxSharp.Backend
+namespace LoxSharp.Runtime
 {
     public class Interpreter : ExprVisitor<object>, StmtVisitor<object>
     {

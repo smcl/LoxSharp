@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace LoxSharp.Backend
+namespace LoxSharp.Runtime
 {
     public class ReturnValue : Exception
     {

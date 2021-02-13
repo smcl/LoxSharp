@@ -3,7 +3,7 @@ using System.IO;
 using LoxSharp.Common.Parser;
 using LoxSharp.Grammar;
 using LoxSharp.Frontend;
-using LoxSharp.Backend;
+using LoxSharp.Runtime;
 
 namespace LoxSharp
 {
@@ -91,7 +91,6 @@ namespace LoxSharp
             }
 
             interpreter.Interpret(statements);
-            // Console.WriteLine(new AstPrinter().Print(expression));
         }
 
         public static void Error(int line, string message)

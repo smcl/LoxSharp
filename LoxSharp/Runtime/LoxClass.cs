@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace LoxSharp.Backend
+namespace LoxSharp.Runtime
 {
     public class LoxClass : ILoxCallable
     {

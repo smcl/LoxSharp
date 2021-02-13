@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using LoxSharp.Grammar;
 using LoxSharp.Common.Parser;
 using LoxSharp.Extensions;
 
-namespace LoxSharp.Backend
+namespace LoxSharp.Runtime
 {
     public class Resolver : ExprVisitor<object>, StmtVisitor<object>
     {

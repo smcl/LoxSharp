@@ -1,4 +1,4 @@
-﻿namespace LoxSharp.Backend
+﻿namespace LoxSharp.Runtime
 {
     public enum FunctionType
     {

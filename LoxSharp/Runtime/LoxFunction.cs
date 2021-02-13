@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using LoxSharp.Grammar;
 
-namespace LoxSharp.Backend
+namespace LoxSharp.Runtime
 {
     public class LoxFunction : ILoxCallable
     {
