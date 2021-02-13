@@ -2,7 +2,7 @@ using LoxSharp.Extensions;
 using System.Collections.Generic;
 using Xunit;
 
-namespace LoxSharp.Test
+namespace LoxSharp.Test.Unit
 {
     public class StackExtensionsTests
     {

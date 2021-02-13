@@ -10,11 +10,13 @@ namespace LoxSharp.Frontend
     {
         private readonly IList<Token> _tokens;
         private int _current;
+        private readonly Lox _lox;
 
-        public Parser(IList<Token> tokens)
+        public Parser(IList<Token> tokens, Lox lox)
         {
             _tokens = tokens;
             _current = 0;
+            _lox = lox;
         }
 
         public IList<Stmt> Parse()
@@ -32,7 +34,6 @@ namespace LoxSharp.Frontend
         {
             return Assignment();
         }
-
 
         private Expr Assignment()
         {
@@ -351,7 +352,7 @@ namespace LoxSharp.Frontend
 
         private ParseError Error(Token token, string message)
         {
-            Program.Error(token, message);
+            _lox.Error(token, message);
             return new ParseError();
         }
 
@@ -559,10 +560,5 @@ namespace LoxSharp.Frontend
 
             return new While(condition, body);
         }
-    }
-
-    public class ParseError: System.Exception
-    {
-        /* ??? */
     }
 }

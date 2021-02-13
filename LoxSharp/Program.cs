@@ -1,15 +1,11 @@
 ﻿using System;
 using System.IO;
-using LoxSharp.Common.Parser;
-using LoxSharp.Grammar;
-using LoxSharp.Frontend;
-using LoxSharp.Runtime;
 
 namespace LoxSharp
 {
     class Program
     {
-        private static Interpreter interpreter = new Interpreter();
+        private static Lox _lox = new Lox(Console.Out, Console.Error);
         private static bool _hadError = false;
         private static bool _hadRuntimeError = false;
 
@@ -72,54 +68,7 @@ namespace LoxSharp
 
         private static void Run(string source)
         {
-            var scanner = new Scanner(source);
-            var tokens = scanner.ScanTokens();
-            var parser = new Parser(tokens);
-            var statements = parser.Parse();
-
-            if (_hadError)
-            {
-                return;
-            }
-
-            var resolver = new Resolver(interpreter);
-            resolver.Resolve(statements);
-
-            if (_hadError)
-            {
-                return;
-            }
-
-            interpreter.Interpret(statements);
-        }
-
-        public static void Error(int line, string message)
-        {
-            Report(line, "", message);
-        }
-
-        public static void Error(Token token, string message)
-        {
-            if (token.Type == TokenType.EOF)
-            {
-                Report(token.Line, " at end", message);
-            }
-            else
-            {
-                Report(token.Line, $" at '{token.Lexeme}'", message);
-            }
-        }
-
-        public static void RuntimeError(RuntimeError error)
-        {
-            Console.Error.WriteLine($"{error.Message}\n[line {error.Token.Line}]");
-            _hadRuntimeError = true;
-        }
-
-        private static void Report(int line, string where, string message)
-        {
-            Console.WriteLine($"[line {line}] Error {where}: {message}");
-            _hadError = true;
+            _lox.Run(source);
         }
     }
 }

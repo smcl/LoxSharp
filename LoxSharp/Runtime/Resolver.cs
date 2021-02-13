@@ -8,13 +8,15 @@ namespace LoxSharp.Runtime
     public class Resolver : ExprVisitor<object>, StmtVisitor<object>
     {
         private readonly Interpreter _interpreter;
+        private readonly Lox _lox;
         private readonly Stack<IDictionary<string, bool>> _scopes;
         private FunctionType _currentFunction;
         private ClassType _currentClass;
 
-        public Resolver(Interpreter interpreter)
+        public Resolver(Interpreter interpreter, Lox lox)
         {
             _interpreter = interpreter;
+            _lox = lox;
             _scopes = new Stack<IDictionary<string, bool>>();
             _currentFunction = FunctionType.NONE;
             _currentClass = ClassType.NONE;
@@ -60,7 +62,7 @@ namespace LoxSharp.Runtime
 
             if (scope.ContainsKey(name.Lexeme))
             {
-                Program.Error(name, "Already variable with this name in this scope");
+                _lox.Error(name, "Already variable with this name in this scope");
             }
 
             scope.Add(name.Lexeme, false);
@@ -202,14 +204,14 @@ namespace LoxSharp.Runtime
         {
             if (_currentFunction == FunctionType.NONE)
             {
-                Program.Error(r.Keyword, "Can't return from top-level code.");
+                _lox.Error(r.Keyword, "Can't return from top-level code.");
             }
 
             if (r.Value != null)
             {
                 if (_currentFunction == FunctionType.INITIALIZER)
                 {
-                    Program.Error(r.Keyword, "Can't return a value from an initializer.");
+                    _lox.Error(r.Keyword, "Can't return a value from an initializer.");
                 }
                 Resolve(r.Value);
             }
@@ -231,7 +233,7 @@ namespace LoxSharp.Runtime
                 {
                     if (!res)
                     {
-                        Program.Error(v.Name, "Can't read local variable in its own initializer");
+                        _lox.Error(v.Name, "Can't read local variable in its own initializer");
                     }
                 }
             }
@@ -302,7 +304,7 @@ namespace LoxSharp.Runtime
         {
             if (_currentClass == ClassType.NONE)
             {
-                Program.Error(t.Keyword, "Can't use 'this' outside of a class.");
+                _lox.Error(t.Keyword, "Can't use 'this' outside of a class.");
                 return null;
             }
 

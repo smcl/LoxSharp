@@ -10,16 +10,18 @@ namespace LoxSharp.Frontend
         private string _source;
         private readonly IList<Token> _tokens;
         private readonly IDictionary<string, TokenType> _keywords;
+        private readonly Lox _lox;
 
         private int _start = 0;
         private int _current = 0;
         private int _line = 1;
 
-        public Scanner(string source)
+        public Scanner(string source, Lox lox)
         {
             _source = source;
             _tokens = new List<Token>();
             _keywords = InitialiseKeywords();
+            _lox = lox;
         }
 
         private IDictionary<string, TokenType> InitialiseKeywords()
@@ -49,14 +51,22 @@ namespace LoxSharp.Frontend
 
         public IList<Token> ScanTokens()
         {
-            while(!AtEnd())
+            try
             {
-                _start = _current;
-                ScanToken();
-            }
+                while (!AtEnd())
+                {
+                    _start = _current;
+                    ScanToken();
+                }
 
-            _tokens.Add(new Token(TokenType.EOF, "", null, _line));
-            return _tokens;
+                _tokens.Add(new Token(TokenType.EOF, "", null, _line));
+                return _tokens;
+            } 
+            catch (ScanError)
+            {
+                _lox._hadError = true;
+                return null;
+            }
         }
 
         private bool AtEnd()
@@ -131,7 +141,7 @@ namespace LoxSharp.Frontend
                     }
                     else
                     {
-                        Program.Error(_line, "Unexpected character.");
+                        _lox.Error(_line, "Unexpected character.");
                     }
 
                     break;
@@ -253,6 +263,12 @@ namespace LoxSharp.Frontend
         private char Advance()
         {
             _current++;
+            
+            if (_current > _source.Length)
+            {
+                _lox.Error(_line, "Unexpected end of input");
+                throw new ScanError();
+            }
 
             return _source[_current - 1];
         }

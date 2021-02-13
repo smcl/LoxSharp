@@ -4,6 +4,7 @@ using System.Text;
 using LoxSharp.Grammar;
 using LoxSharp.Common.Parser;
 using LoxSharp.StdLib;
+using System.IO;
 
 namespace LoxSharp.Runtime
 {
@@ -12,8 +13,10 @@ namespace LoxSharp.Runtime
         private readonly Environment _globals;
         private Environment _environment;
         private readonly IDictionary<Expr, int> _locals;
+        private readonly TextWriter _stdOut;
+        private readonly Lox _lox;
 
-        public Interpreter()
+        public Interpreter(TextWriter stdOut, Lox lox)
         {
             _globals = new Environment();
             _environment = _globals;
@@ -21,6 +24,9 @@ namespace LoxSharp.Runtime
 
             _globals.Define("clock", new Clock());
             _globals.Define("add", new LoxCallable(2, (args) => (double)args[0] + (double)args[1]));
+
+            _stdOut = stdOut;
+            _lox = lox;
         }
 
         public void Interpret(IList<Stmt> statements)
@@ -34,7 +40,7 @@ namespace LoxSharp.Runtime
             }
             catch(RuntimeError error)
             {
-                Program.RuntimeError(error);
+                _lox.RuntimeError(error);
             }
         }
 
@@ -206,7 +212,7 @@ namespace LoxSharp.Runtime
         public object VisitPrintStmt(Print p)
         {
             var value = Evaluate(p.Expr);
-            Console.WriteLine(Stringify(value));
+            _stdOut.WriteLine(Stringify(value));
             return null;
         }
 
