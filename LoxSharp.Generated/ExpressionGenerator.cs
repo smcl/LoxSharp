@@ -18,7 +18,8 @@ namespace LoxSharp.Generated
                 "Variable : Token Name",
                 "Get      : Expr LoxObject, Token Name",
                 "Set      : Expr LoxObject, Token Name, Expr Value",
-                "This     : Token Keyword"
+                "This     : Token Keyword",
+                "Super    : Token Keyword, Token Method"
             };
 
             GenerateGrammar(context, "Expr", expressions);

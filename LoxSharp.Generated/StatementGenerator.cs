@@ -10,7 +10,7 @@ namespace LoxSharp.Generated
             var statements = new string[]
             {
                 "Block      : List<Stmt> Statements",
-                "Class      : Token Name, IList<Function> Methods",
+                "Class      : Token Name, Variable Superclass, IList<Function> Methods",
                 "Expression : Expr Expr",
                 "Function   : Token Name, IList<Token> Parameters, IList<Stmt> Body",
                 "If         : Expr Condition, Stmt ThenBranch, Stmt ElseBranch",

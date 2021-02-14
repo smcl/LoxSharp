@@ -6,13 +6,15 @@ namespace LoxSharp.Runtime
     public class LoxClass : ILoxCallable
     {
         public string Name { get; init; }
+        public LoxClass Superclass { get; }
         public IDictionary<string, LoxFunction> Methods { get; init; }
 
         public int Arity => GetArity();
 
-        public LoxClass(string name, IDictionary<string, LoxFunction> methods)
+        public LoxClass(string name, LoxClass superclass, IDictionary<string, LoxFunction> methods)
         {
             Name = name;
+            Superclass = superclass;
             Methods = methods;
         }
 
@@ -39,6 +41,11 @@ namespace LoxSharp.Runtime
             if (Methods.TryGetValue(name, out var method))
             {
                 return method;
+            }
+
+            if (Superclass != null)
+            {
+                return Superclass.FindMethod(name);
             }
 
             return null;

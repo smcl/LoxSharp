@@ -109,7 +109,7 @@ namespace LoxSharp.Frontend
 
                 return Statement();
             } 
-            catch(ParseError error)
+            catch(ParseError)
             {
                 Synchronize();
                 return null;
@@ -119,10 +119,18 @@ namespace LoxSharp.Frontend
         private Stmt ClassDeclaration()
         {
             var name = Consume(TokenType.IDENTIFIER, "Expected class name.");
+
+            var superClassName = Match(TokenType.LESS)
+                ? Consume(TokenType.IDENTIFIER, "Expected superclass name after '>'.")
+                : null;
+
+            var superClass = superClassName != null
+                ? new Variable(Previous())
+                : null;
+
             Consume(TokenType.LEFT_BRACE, "Expected '{' before class body");
 
             var methods = new List<Function>();
-
             while (!Check(TokenType.RIGHT_BRACE) && !AtEnd())
             {
                 methods.Add(Function("method"));
@@ -130,7 +138,7 @@ namespace LoxSharp.Frontend
 
             Consume(TokenType.RIGHT_BRACE, "Expected '}' after class body");
 
-            return new Class(name, methods);
+            return new Class(name, superClass, methods);
         }
 
         private Function Function(string kind)
@@ -296,6 +304,14 @@ namespace LoxSharp.Frontend
             if (Match(TokenType.NUMBER, TokenType.STRING))
             {
                 return new Literal(Previous().Literal);
+            }
+
+            if (Match(TokenType.SUPER))
+            {
+                var keyword = Previous();
+                Consume(TokenType.DOT, "Expect '.' after 'super'.");
+                var method = Consume(TokenType.IDENTIFIER, "Expect superclass method name");
+                return new Super(keyword, method);
             }
 
             if (Match(TokenType.THIS))

@@ -221,6 +221,21 @@ namespace LoxSharp.Runtime
             Declare(stmt.Name);
             Define(stmt.Name);
 
+            if (stmt.Superclass != null)
+            {
+                _currentClass = ClassType.SUBCLASS;
+                if (stmt.Name.Lexeme == stmt.Superclass.Name.Lexeme)
+                {
+                    _lox.Error(stmt.Superclass.Name, "A class can't inherit from itself.");
+                }
+
+                Resolve(stmt.Superclass);
+
+                BeginScope();
+                _scopes.Peek().Add("super", true);
+            }
+
+
             BeginScope();
             _scopes.Peek().Add("this", true);
 
@@ -234,6 +249,12 @@ namespace LoxSharp.Runtime
             }
 
             EndScope();
+
+            if (stmt.Superclass != null)
+            {
+                EndScope();
+            }
+
             _currentClass = enclosingClass;
             return null;
         }
@@ -309,6 +330,21 @@ namespace LoxSharp.Runtime
                 }
                 Resolve(stmt.Value);
             }
+            return null;
+        }
+
+        public object VisitSuperExpr(Super expr)
+        {
+            if (_currentClass == ClassType.NONE)
+            {
+                _lox.Error(expr.Keyword, "Can't use 'super' outside of a class");
+            }
+            else if (_currentClass != ClassType.SUBCLASS)
+            {
+                _lox.Error(expr.Keyword, "Can't user 'super' in a class with no superclass");
+            }
+
+            ResolveLocal(expr, expr.Keyword);
             return null;
         }
     }
