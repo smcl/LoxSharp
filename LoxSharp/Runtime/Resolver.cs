@@ -112,33 +112,25 @@ namespace LoxSharp.Runtime
             }
         }
 
-        public object VisitAssignExpr(Assign a)
+        public object VisitAssignExpr(Assign expr)
         {
-            Resolve(a.Value);
-            ResolveLocal(a, a.Name);
+            Resolve(expr.Value);
+            ResolveLocal(expr, expr.Name);
             return null;
         }
 
-        public object VisitBinaryExpr(Binary b)
+        public object VisitBinaryExpr(Binary expr)
         {
-            Resolve(b.Left);
-            Resolve(b.Right);
+            Resolve(expr.Left);
+            Resolve(expr.Right);
             return null;
         }
 
-        public object VisitBlockStmt(Block b)
+        public object VisitCallExpr(Call expr)
         {
-            BeginScope();
-            Resolve(b.Statements);
-            EndScope();
-            return null;
-        }
+            Resolve(expr.Callee);
 
-        public object VisitCallExpr(Call c)
-        {
-            Resolve(c.Callee);
-
-            foreach (var argument in c.Arguments)
+            foreach (var argument in expr.Arguments)
             {
                 Resolve(argument);
             }
@@ -146,28 +138,117 @@ namespace LoxSharp.Runtime
             return null;
         }
 
-        public object VisitExitStmt(Exit e)
+        public object VisitGroupingExpr(Grouping expr)
+        {
+            Resolve(expr.Expression);
+            return null;
+        }
+
+        public object VisitLiteralExpr(Literal expr)
         {
             return null;
         }
 
-        public object VisitExpressionStmt(Expression e)
+        public object VisitLogicalExpr(Logical expr)
         {
-            Resolve(e.Expr);
+            Resolve(expr.Left);
+            Resolve(expr.Right);
             return null;
         }
 
-        public object VisitFunctionStmt(Function f)
+        public object VisitUnaryExpr(Unary expr)
         {
-            Declare(f.Name);
-            Define(f.Name);
-            ResolveFunction(f, FunctionType.FUNCTION);
+            Resolve(expr.Right);
             return null;
         }
 
-        public object VisitGroupingExpr(Grouping g)
+        public object VisitVariableExpr(Variable expr)
         {
-            Resolve(g.Expression);
+            if (!_scopes.IsEmpty())
+            {
+                var scope = _scopes.Peek();
+                if (scope.TryGetValue(expr.Name.Lexeme, out var res))
+                {
+                    if (!res)
+                    {
+                        _lox.Error(expr.Name, "Can't read local variable in its own initializer");
+                    }
+                }
+            }
+
+            ResolveLocal(expr, expr.Name);
+            return null;
+        }
+
+        public object VisitGetExpr(Get expr)
+        {
+            Resolve(expr.LoxObject);
+            return null;
+        }
+
+        public object VisitSetExpr(Set expr)
+        {
+            Resolve(expr.Value);
+            Resolve(expr.LoxObject);
+            return null;
+        }
+
+        public object VisitThisExpr(This expr)
+        {
+            if (_currentClass == ClassType.NONE)
+            {
+                _lox.Error(expr.Keyword, "Can't use 'this' outside of a class.");
+                return null;
+            }
+
+            ResolveLocal(expr, expr.Keyword);
+            return null;
+        }
+
+        public object VisitBlockStmt(Block stmt)
+        {
+            BeginScope();
+            Resolve(stmt.Statements);
+            EndScope();
+            return null;
+        }
+
+        public object VisitClassStmt(Class stmt)
+        {
+            var enclosingClass = _currentClass;
+            _currentClass = ClassType.CLASS;
+
+            Declare(stmt.Name);
+            Define(stmt.Name);
+
+            BeginScope();
+            _scopes.Peek().Add("this", true);
+
+            foreach (var method in stmt.Methods)
+            {
+                var declaration = method.Name.Lexeme == "init"
+                    ? FunctionType.INITIALIZER
+                    : FunctionType.METHOD;
+
+                ResolveFunction(method, declaration);
+            }
+
+            EndScope();
+            _currentClass = enclosingClass;
+            return null;
+        }
+
+        public object VisitExpressionStmt(Expression stmt)
+        {
+            Resolve(stmt.Expr);
+            return null;
+        }
+
+        public object VisitFunctionStmt(Function stmt)
+        {
+            Declare(stmt.Name);
+            Define(stmt.Name);
+            ResolveFunction(stmt, FunctionType.FUNCTION);
             return null;
         }
 
@@ -182,133 +263,52 @@ namespace LoxSharp.Runtime
             return null;
         }
 
-        public object VisitLiteralExpr(Literal l)
+        public object VisitPrintStmt(Print stmt)
+        {
+            Resolve(stmt.Expr);
+            return null;
+        }
+
+        public object VisitVarStmt(Var stmt)
+        {
+            Declare(stmt.Name);
+
+            if (stmt.Initializer != null)
+            {
+                Resolve(stmt.Initializer);
+            }
+
+            Define(stmt.Name);
+            return null;
+        }
+
+        public object VisitWhileStmt(While stmt)
+        {
+            Resolve(stmt.Condition);
+            Resolve(stmt.Body);
+            return null;
+        }
+
+        public object VisitExitStmt(Exit stmt)
         {
             return null;
         }
 
-        public object VisitLogicalExpr(Logical l)
-        {
-            Resolve(l.Left);
-            Resolve(l.Right);
-            return null;
-        }
-
-        public object VisitPrintStmt(Print p)
-        {
-            Resolve(p.Expr);
-            return null;
-        }
-
-        public object VisitReturnStmt(Return r)
+        public object VisitReturnStmt(Return stmt)
         {
             if (_currentFunction == FunctionType.NONE)
             {
-                _lox.Error(r.Keyword, "Can't return from top-level code.");
+                _lox.Error(stmt.Keyword, "Can't return from top-level code.");
             }
 
-            if (r.Value != null)
+            if (stmt.Value != null)
             {
                 if (_currentFunction == FunctionType.INITIALIZER)
                 {
-                    _lox.Error(r.Keyword, "Can't return a value from an initializer.");
+                    _lox.Error(stmt.Keyword, "Can't return a value from an initializer.");
                 }
-                Resolve(r.Value);
+                Resolve(stmt.Value);
             }
-            return null;
-        }
-
-        public object VisitUnaryExpr(Unary u)
-        {
-            Resolve(u.Right);
-            return null;
-        }
-
-        public object VisitVariableExpr(Variable v)
-        {
-            if (!_scopes.IsEmpty())
-            {
-                var scope = _scopes.Peek();
-                if (scope.TryGetValue(v.Name.Lexeme, out var res))
-                {
-                    if (!res)
-                    {
-                        _lox.Error(v.Name, "Can't read local variable in its own initializer");
-                    }
-                }
-            }
-
-            ResolveLocal(v, v.Name);
-            return null;
-        }
-
-        public object VisitVarStmt(Var v)
-        {
-            Declare(v.Name);
-
-            if (v.Initializer != null)
-            {
-                Resolve(v.Initializer);
-            }
-             
-            Define(v.Name);
-            return null;
-        }
-
-        public object VisitWhileStmt(While w)
-        {
-            Resolve(w.Condition);
-            Resolve(w.Body);
-            return null;
-        }
-
-        public object VisitClassStmt(Class c)
-        {
-            var enclosingClass = _currentClass;
-            _currentClass = ClassType.CLASS;
-
-            Declare(c.Name);
-            Define(c.Name);
-
-            BeginScope();
-            _scopes.Peek().Add("this", true);
-
-            foreach (var method in c.Methods)
-            {
-                var declaration = method.Name.Lexeme == "init"
-                    ? FunctionType.INITIALIZER
-                    : FunctionType.METHOD;
-
-                ResolveFunction(method, declaration);
-            }
-
-            EndScope();
-            _currentClass = enclosingClass;
-            return null;
-        }
-
-        public object VisitGetExpr(Get g)
-        {
-            Resolve(g.LoxObject);
-            return null;
-        }
-
-        public object VisitSetExpr(Set s)
-        {
-            Resolve(s.Value);
-            Resolve(s.LoxObject);
-            return null;
-        }
-
-        public object VisitThisExpr(This t)
-        {
-            if (_currentClass == ClassType.NONE)
-            {
-                _lox.Error(t.Keyword, "Can't use 'this' outside of a class.");
-                return null;
-            }
-
-            ResolveLocal(t, t.Keyword);
             return null;
         }
     }

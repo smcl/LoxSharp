@@ -13,8 +13,9 @@ namespace LoxSharp.Runtime
         private readonly Environment _globals;
         private Environment _environment;
         private readonly IDictionary<Expr, int> _locals;
-        private readonly TextWriter _stdOut;
         private readonly Lox _lox;
+
+        public readonly TextWriter StdOut;
 
         public Interpreter(TextWriter stdOut, Lox lox)
         {
@@ -24,8 +25,9 @@ namespace LoxSharp.Runtime
 
             _globals.Define("clock", new Clock());
             _globals.Define("add", new LoxCallable(2, (args) => (double)args[0] + (double)args[1]));
+            _globals.Define("print", new PrintFunction());
 
-            _stdOut = stdOut;
+            StdOut = stdOut;
             _lox = lox;
         }
 
@@ -43,229 +45,7 @@ namespace LoxSharp.Runtime
                 _lox.RuntimeError(error);
             }
         }
-
-        public object VisitBinaryExpr(Binary b)
-        {
-            var left = Evaluate(b.Left);
-            var right = Evaluate(b.Right);
-
-            switch (b.Op.Type)
-            {
-                case TokenType.MINUS:
-                    AssertNumberOperands(b.Op, left, right);
-                    return (double)left - (double)right;
-                case TokenType.SLASH:
-                    AssertNumberOperands(b.Op, left, right);
-                    return (double)left / (double)right;
-                case TokenType.STAR:
-                    AssertNumberOperands(b.Op, left, right);
-                    return (double)left * (double)right;
-                case TokenType.PLUS:
-                    if (left is double && right is double)
-                    {
-                        return (double)left + (double)right;
-                    }
-
-                    if (left is string && right is string)
-                    {
-                        return (string)left + (string)right;
-                    }
-                    break;
-                case TokenType.GREATER:
-                    AssertNumberOperands(b.Op, left, right);
-                    return (double)left > (double)right;
-                case TokenType.GREATER_EQUAL:
-                    AssertNumberOperands(b.Op, left, right);
-                    return (double)left >= (double)right;
-                case TokenType.LESS:
-                    AssertNumberOperands(b.Op, left, right);
-                    return (double)left < (double)right;
-                case TokenType.LESS_EQUAL:
-                    AssertNumberOperands(b.Op, left, right);
-                    return (double)left <= (double)right;
-                case TokenType.BANG_EQUAL:
-                    return !IsEqual(left, right);
-                case TokenType.EQUAL_EQUAL:
-                    return IsEqual(left, right);
-            }
-
-            return null;
-        }
-
-        public object VisitGroupingExpr(Grouping g)
-        {
-            return Evaluate(g.Expression);
-        }
-
-        public object VisitLiteralExpr(Literal l)
-        {
-            return l.Value;
-        }
-
-        public object VisitUnaryExpr(Unary u)
-        {
-            var right = Evaluate(u.Right);
-            
-            switch (u.Op.Type)
-            {
-                case TokenType.BANG:
-                    return !IsTruthy(right);
-                case TokenType.MINUS:
-                    AssertNumberOperand(u.Op, right);
-                    return -(double)right;
-            }
-
-            return null;
-        }
-
-        private object Evaluate(Expr expr)
-        {
-            if (expr == null)
-            {
-                return null;
-            }
-
-            return expr.Accept(this);
-        }
-
-        private void Execute(Stmt stmt)
-        {
-            stmt.Accept(this);
-        }
-
-        private bool IsTruthy(object obj)
-        {
-            if (obj == null)
-            {
-                return false;
-            }
-
-            if (obj is bool)
-            {
-                return (bool)obj;
-            }
-
-            return true;
-        }
-
-        private bool IsEqual(object left, object right)
-        {
-            if (left == null && right == null)
-            {
-                return true;
-            }
-
-            if (left == null)
-            {
-                return false;
-            }
-
-            return left.Equals(right);
-        }
-
-        private void AssertNumberOperand(Token op, object operand)
-        {
-            if (operand is double)
-            {
-                return;
-            }
-
-            throw new RuntimeError(op, "Operand must be a number");
-        }
-
-        private void AssertNumberOperands(Token op, object left, object right)
-        {
-            if (left is double && right is double)
-            {
-                return;
-            }
-
-            throw new RuntimeError(op, "Operands must be numbers");
-        }
-
-        private string Stringify(object obj)
-        {
-            if (obj == null)
-            {
-                return "nil";
-            }
-
-            if (obj is double)
-            {
-                var text = obj.ToString();
-                if (text.EndsWith(".0"))
-                {
-                    text = text.Substring(0, text.Length - 2);
-                }
-                return text;
-            }
-
-            return obj.ToString();
-        }
-
-        public object VisitExpressionStmt(Expression e)
-        {
-            Evaluate(e.Expr);
-            return null;
-        }
-
-        public object VisitPrintStmt(Print p)
-        {
-            var value = Evaluate(p.Expr);
-            _stdOut.WriteLine(Stringify(value));
-            return null;
-        }
-
-        public object VisitVariableExpr(Variable v)
-        {
-            return LookupVariable(v.Name, v);
-        }
-
-        private object LookupVariable(Token name, Expr v)
-        {
-            if (_locals.TryGetValue(v, out var distance))
-            {
-                return _environment.GetAt(distance, name.Lexeme);
-            }
-
-            return _globals.Get(name);
-        }
-
-        public object VisitVarStmt(Var v)
-        {
-            object value = null;
-
-            if (v.Initializer != null)
-            {
-                value = Evaluate(v.Initializer);
-            }
-
-            _environment.Define(v.Name.Lexeme, value);
-            return null;
-        }
-
-        public object VisitAssignExpr(Assign a)
-        {
-            var value = Evaluate(a.Value);
-
-            if (_locals.TryGetValue(a, out var distance))
-            {
-                _environment.AssignAt(distance, a.Name, value);
-            }
-            else 
-            {
-                _globals.Assign(a.Name, value);
-            }
-
-            return value;
-        }
-
-        public object VisitBlockStmt(Block b)
-        {
-            ExecuteBlock(b.Statements, new Environment(_environment));
-            return null;
-        }
-
+        
         public void ExecuteBlock(IList<Stmt> statements, Environment environment)
         {
             var previous = _environment;
@@ -285,44 +65,206 @@ namespace LoxSharp.Runtime
             }
         }
 
-        public object VisitExitStmt(Exit e)
+        private object Evaluate(Expr expr)
         {
-            var result = Evaluate(e.Expr);
+            if (expr == null)
+            {
+                return null;
+            }
 
-            try
+            return expr.Accept(this);
+        }
+
+        private void Execute(Stmt stmt)
+        {
+            stmt.Accept(this);
+        }
+
+        private static bool IsTruthy(object obj)
+        {
+            if (obj == null)
             {
-                var exitCode = Convert.ToInt32((double)result);
-                System.Environment.Exit(exitCode);
-            } 
-            catch (Exception)
+                return false;
+            }
+
+            if (obj is bool)
             {
-                System.Environment.Exit(-1);
+                return (bool)obj;
+            }
+
+            return true;
+        }
+
+        private static bool IsEqual(object left, object right)
+        {
+            if (left == null && right == null)
+            {
+                return true;
+            }
+
+            if (left == null)
+            {
+                return false;
+            }
+
+            return left.Equals(right);
+        }
+
+        private static void AssertNumberOperand(Token op, object operand)
+        {
+            if (operand is double)
+            {
+                return;
+            }
+
+            throw new RuntimeError(op, "Operand must be a number");
+        }
+
+        private static void AssertNumberOperands(Token op, object left, object right)
+        {
+            if (left is double && right is double)
+            {
+                return;
+            }
+
+            throw new RuntimeError(op, "Operands must be numbers");
+        }
+
+        private static string Stringify(object obj)
+        {
+            if (obj == null)
+            {
+                return "nil";
+            }
+
+            if (obj is double)
+            {
+                var text = obj.ToString();
+                if (text.EndsWith(".0"))
+                {
+                    text = text.Substring(0, text.Length - 2);
+                }
+                return text;
+            }
+
+            return obj.ToString();
+        }
+
+        private object LookupVariable(Token name, Expr expr)
+        {
+            if (_locals.TryGetValue(expr, out var distance))
+            {
+                return _environment.GetAt(distance, name.Lexeme);
+            }
+
+            return _globals.Get(name);
+        }
+
+
+        public void Resolve(Expr expr, int depth)
+        {
+            _locals.Add(expr, depth);
+        }
+
+        public object VisitAssignExpr(Assign expr)
+        {
+            var value = Evaluate(expr.Value);
+
+            if (_locals.TryGetValue(expr, out var distance))
+            {
+                _environment.AssignAt(distance, expr.Name, value);
+            }
+            else
+            {
+                _globals.Assign(expr.Name, value);
+            }
+
+            return value;
+        }
+
+        public object VisitBinaryExpr(Binary expr)
+        {
+            var left = Evaluate(expr.Left);
+            var right = Evaluate(expr.Right);
+
+            switch (expr.Op.Type)
+            {
+                case TokenType.MINUS:
+                    AssertNumberOperands(expr.Op, left, right);
+                    return (double)left - (double)right;
+                case TokenType.SLASH:
+                    AssertNumberOperands(expr.Op, left, right);
+                    return (double)left / (double)right;
+                case TokenType.STAR:
+                    AssertNumberOperands(expr.Op, left, right);
+                    return (double)left * (double)right;
+                case TokenType.PLUS:
+                    if (left is double && right is double)
+                    {
+                        return (double)left + (double)right;
+                    }
+
+                    if (left is string && right is string)
+                    {
+                        return (string)left + (string)right;
+                    }
+                    break;
+                case TokenType.GREATER:
+                    AssertNumberOperands(expr.Op, left, right);
+                    return (double)left > (double)right;
+                case TokenType.GREATER_EQUAL:
+                    AssertNumberOperands(expr.Op, left, right);
+                    return (double)left >= (double)right;
+                case TokenType.LESS:
+                    AssertNumberOperands(expr.Op, left, right);
+                    return (double)left < (double)right;
+                case TokenType.LESS_EQUAL:
+                    AssertNumberOperands(expr.Op, left, right);
+                    return (double)left <= (double)right;
+                case TokenType.BANG_EQUAL:
+                    return !IsEqual(left, right);
+                case TokenType.EQUAL_EQUAL:
+                    return IsEqual(left, right);
             }
 
             return null;
         }
 
-        public object VisitIfStmt(If i)
+        public object VisitCallExpr(Call expr)
         {
-            var condition = Evaluate(i.Condition);
+            var callee = Evaluate(expr.Callee);
+            var arguments = new List<object>();
 
-            if (IsTruthy(condition))
+            foreach (var argument in expr.Arguments)
             {
-                Execute(i.ThenBranch);
-            }
-            else if (i.ElseBranch != null)
-            { 
-                Execute(i.ElseBranch);
+                arguments.Add(Evaluate(argument));
             }
 
-            return null;
+            var function = (ILoxCallable)callee;
+
+            if (arguments.Count != function.Arity)
+            {
+                throw new RuntimeError(expr.Paren, $"Expected {function.Arity} arguments but got {arguments.Count}.");
+            }
+
+            return function.Call(this, arguments);
         }
 
-        public object VisitLogicalExpr(Logical l)
+        public object VisitGroupingExpr(Grouping expr)
         {
-            var left = Evaluate(l.Left);
+            return Evaluate(expr.Expression);
+        }
 
-            if (l.Op.Type == TokenType.OR)
+        public object VisitLiteralExpr(Literal expr)
+        {
+            return expr.Value;
+        }
+
+        public object VisitLogicalExpr(Logical expr)
+        {
+            var left = Evaluate(expr.Left);
+
+            if (expr.Op.Type == TokenType.OR)
             {
                 if (IsTruthy(left))
                 {
@@ -337,109 +279,170 @@ namespace LoxSharp.Runtime
                 }
             }
 
-            return Evaluate(l.Right);
+            return Evaluate(expr.Right);
         }
 
-        public object VisitWhileStmt(While w)
+        public object VisitUnaryExpr(Unary expr)
         {
-            while (IsTruthy(Evaluate(w.Condition)))
+            var right = Evaluate(expr.Right);
+
+            switch (expr.Op.Type)
             {
-                Execute(w.Body);
+                case TokenType.BANG:
+                    return !IsTruthy(right);
+                case TokenType.MINUS:
+                    AssertNumberOperand(expr.Op, right);
+                    return -(double)right;
             }
 
             return null;
         }
 
-        public object VisitCallExpr(Call c)
+        public object VisitVariableExpr(Variable expr)
         {
-            var callee = Evaluate(c.Callee);
-            var arguments = new List<object>();
-
-            foreach (var argument in c.Arguments)
-            {
-                arguments.Add(Evaluate(argument));
-            }
-
-            var function = (ILoxCallable)callee;
-
-            if (arguments.Count != function.Arity)
-            {
-                throw new RuntimeError(c.Paren, $"Expected {function.Arity} arguments but got {arguments.Count}.");
-            }
-
-            return function.Call(this, arguments);
+            return LookupVariable(expr.Name, expr);
         }
 
-        public object VisitFunctionStmt(Function f)
+        public object VisitGetExpr(Get expr)
         {
-            var function = new LoxFunction(f, _environment, false);
-            _environment.Define(f.Name.Lexeme, function);
+            var obj = Evaluate(expr.LoxObject);
+
+            if (obj is LoxInstance)
+            {
+                return ((LoxInstance)obj).Get(expr.Name);
+            }
+
+            throw new RuntimeError(expr.Name, "Only instances have properties");
+        }
+
+        public object VisitSetExpr(Set expr)
+        {
+            var obj = Evaluate(expr.LoxObject);
+
+            if (!(obj is LoxInstance))
+            {
+                throw new RuntimeError(expr.Name, "Only instances have fields.");
+            }
+
+            var value = Evaluate(expr.Value);
+            ((LoxInstance)obj).Set(expr.Name, value);
+            return value;
+        }
+
+        public object VisitThisExpr(This expr)
+        {
+            return LookupVariable(expr.Keyword, expr);
+        }
+
+        public object VisitBlockStmt(Block stmt)
+        {
+            ExecuteBlock(stmt.Statements, new Environment(_environment));
             return null;
         }
 
-        public object VisitReturnStmt(Return r)
+        public object VisitClassStmt(Class stmt)
         {
-            object value = null;
-
-            if (r.Value != null)
-            {
-                value = Evaluate(r.Value);
-            }
-
-            throw new ReturnValue(value);
-        }
-
-        public void Resolve(Expr expr, int depth)
-        {
-            _locals.Add(expr, depth);
-        }
-
-        public object VisitClassStmt(Class c)
-        {
-            _environment.Define(c.Name.Lexeme, null);
+            _environment.Define(stmt.Name.Lexeme, null);
 
             var methods = new Dictionary<string, LoxFunction>();
-            foreach (var method in c.Methods)
+            foreach (var method in stmt.Methods)
             {
                 var isInitializer = method.Name.Lexeme == "init";
                 var function = new LoxFunction(method, _environment, isInitializer);
                 methods.Add(method.Name.Lexeme, function);
             }
 
-            var klass = new LoxClass(c.Name.Lexeme, methods);
-            _environment.Assign(c.Name, klass);
+            var klass = new LoxClass(stmt.Name.Lexeme, methods);
+            _environment.Assign(stmt.Name, klass);
             return null;
         }
 
-        public object VisitGetExpr(Get g)
+        public object VisitExpressionStmt(Expression stmt)
         {
-            var obj = Evaluate(g.LoxObject);
-
-            if (obj is LoxInstance)
-            {
-                return ((LoxInstance)obj).Get(g.Name);
-            }
-
-            throw new RuntimeError(g.Name, "Only instances have properties");
+            Evaluate(stmt.Expr);
+            return null;
         }
 
-        public object VisitSetExpr(Set s)
+        public object VisitFunctionStmt(Function stmt)
         {
-            var obj = Evaluate(s.LoxObject);
-
-            if (!(obj is LoxInstance))
-            {
-                throw new RuntimeError(s.Name, "Only instances have fields.");
-            }
-
-            var value = Evaluate(s.Value);
-            ((LoxInstance)obj).Set(s.Name, value);
-            return value;
+            var function = new LoxFunction(stmt, _environment, false);
+            _environment.Define(stmt.Name.Lexeme, function);
+            return null;
         }
 
-        public object VisitThisExpr(This t)
+        public object VisitIfStmt(If stmt)
         {
-            return LookupVariable(t.Keyword, t);
+            var condition = Evaluate(stmt.Condition);
+
+            if (IsTruthy(condition))
+            {
+                Execute(stmt.ThenBranch);
+            }
+            else if (stmt.ElseBranch != null)
+            {
+                Execute(stmt.ElseBranch);
+            }
+
+            return null;
+        }
+
+        public object VisitPrintStmt(Print stmt)
+        {
+            var value = Evaluate(stmt.Expr);
+            StdOut.WriteLine(Stringify(value));
+            return null;
+        }
+
+        public object VisitVarStmt(Var stmt)
+        {
+            object value = null;
+
+            if (stmt.Initializer != null)
+            {
+                value = Evaluate(stmt.Initializer);
+            }
+
+            _environment.Define(stmt.Name.Lexeme, value);
+            return null;
+        }
+
+        public object VisitWhileStmt(While stmt)
+        {
+            while (IsTruthy(Evaluate(stmt.Condition)))
+            {
+                Execute(stmt.Body);
+            }
+
+            return null;
+        }
+
+        public object VisitExitStmt(Exit stmt)
+        {
+            var result = Evaluate(stmt.Expr);
+
+            try
+            {
+                var exitCode = Convert.ToInt32((double)result);
+                System.Environment.Exit(exitCode);
+            }
+            catch (Exception)
+            {
+                System.Environment.Exit(-1);
+            }
+
+            return null;
+        }
+
+        public object VisitReturnStmt(Return stmt)
+        {
+            object value = null;
+
+            if (stmt.Value != null)
+            {
+                value = Evaluate(stmt.Value);
+            }
+
+            throw new ReturnValue(value);
         }
     }
 }
